@@ -1,0 +1,277 @@
+---
+title: "OIDD245: Data Project 2 - Analytics for Good"
+output: html_notebook
+---
+
+```{r}
+install.packages("sf")
+install.packages("corrplot")
+install.packages("ggcorrplot")
+install.packages("ggmap")
+install.packages("choroplethr")
+install.packages("choroplethrMaps")
+
+# import necessay libraries
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(sf)
+library(ggcorrplot)
+library(choroplethr)
+library(ggmap)
+```
+# Question I want to answer:
+1. What are the happiest countries in the world?
+2. What factors affects this happiness score?
+3. What countries have the highest number of internet users?
+4. How is access to internet and happiness related?
+
+Main Q: What changes can countries make to make their people happier?
+```{r}
+# read in csv files 
+internet_data = read.csv("gapminder_internet.csv", stringsAsFactors=FALSE)
+happiness_data = read.csv("world-happiness-report.csv", stringsAsFactors=FALSE)
+happiness2021_data = read.csv("world-happiness-report-2021.csv", stringsAsFactors=FALSE)
+```
+
+```{r}
+# number of countries' data we have in each year 2005-2020
+count(happiness_data, happiness_data$year, sort=TRUE)
+happiness2021_data
+```
+
+```{r}
+happiness2021_data$Country.name = toString(happiness2021_data$Country.name)
+```
+
+```{r}
+# 2021 top 10 happiest countries
+top_10_2021 <- head(happiness2021_data[order(-happiness2021_data$Ladder.score),], n=10)
+top_10_2021
+
+ggplot(data=top_10_2021, aes(x=reorder(Country.name, Ladder.score), y=Ladder.score)) +
+  geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("2021 Top 10 Happiest Countries") + xlab("Countries") + ylab("Ladder Score")
+```
+```{r}
+# 2021 bottom 10 happiest countries
+last_10_2021 <- tail(happiness2021_data[order(-happiness2021_data$Ladder.score),], n=10)
+last_10_2021
+```
+
+```{r}
+# 2020 top 10 countries
+data_2020 =  happiness_data[which(happiness_data$year==2020),]
+top_10_2020 <- head(data_2020[order(-data_2020$Life.Ladder),], n=10)
+top_10_2020
+
+ggplot(data=top_10_2020, aes(x=reorder(Country.name, Life.Ladder), y=Life.Ladder)) + geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("2020 Top 10 Happiest Countries") + xlab("Countries") + ylab("Ladder Score")
+```
+
+```{r}
+# 2019 top 10 countries
+data_2019 =  happiness_data[which(happiness_data$year==2019),]
+top_10_2019 <- head(data_2019[order(-data_2019$Life.Ladder),], n=10)
+top_10_2019
+
+ggplot(data=top_10_2019, aes(x=reorder(Country.name, Life.Ladder), y=Life.Ladder)) + geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("2019 Top 10 Happiest Countries") + xlab("Countries") + ylab("Ladder Score")
+```
+
+```{r}
+# 2018 top 10 countries
+data_2018 =  happiness_data[which(happiness_data$year==2018),]
+top_10_2018 <- head(data_2018[order(-data_2018$Life.Ladder),], n=10)
+top_10_2018
+
+ggplot(data=top_10_2018, aes(x=reorder(Country.name, Life.Ladder), y=Life.Ladder)) + geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("2018 Top 10 Happiest Countries") + xlab("Countries") + ylab("Ladder Score")
+```
+
+```{r}
+# 2005 top 10 countries
+data_2005 = happiness_data[which(happiness_data$year==2005),]
+top_10_2005 <- head(data_2005[order(-data_2005$Life.Ladder),], n=10)
+top_10_2005
+
+ggplot(data=top_10_2005, aes(x=reorder(Country.name, Life.Ladder), y=Life.Ladder)) + geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("2005 Top 10 Happiest Countries") + xlab("Countries") + ylab("Ladder Score")
+```
+
+As we can see Finland not only tops in 2021, but has been the leading country in terms of happiness for the past three years.
+
+Why makes Finland have the highest happiness score? 
+
+Let's start by looking at the logged GDP? Does money actually equal happiness?
+```{r}
+finland = happiness2021_data[which(happiness2021_data$Country.name=="Finland"),]
+finland$Logged.GDP.per.capita
+afghanistan = happiness2021_data[which(happiness2021_data$Country.name=="Afghanistan"),]
+afghanistan$Logged.GDP.per.capita
+#count(happiness2021_data, happiness2021_data$Logged.GDP.per.capita, sort=TRUE)
+
+ggplot(happiness2021_data, aes(x=Logged.GDP.per.capita)) + 
+  geom_histogram(binwidth=.2, fill="#50C878") + ggtitle("2021 Logged GDP") + xlab("Logged GDP per capita") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Logged.GDP.per.capita, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Logged.GDP.per.capita, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) + theme_linedraw() 
+```
+
+```{r}
+ggplot(happiness2021_data, aes(x=Social.support)) + 
+  geom_histogram(binwidth=.025, fill="#50C878") + ggtitle("2021 Social Support") + xlab("Social Support") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Social.support, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Social.support, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) +theme_linedraw() 
+```
+```{r}
+ggplot(happiness2021_data, aes(x=Healthy.life.expectancy)) + 
+  geom_histogram(binwidth=1, fill="#50C878") + ggtitle("2021 Healthy Life Expectancy") + xlab("Healthy Life Expectancy") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Healthy.life.expectancy, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Healthy.life.expectancy, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) +theme_linedraw() 
+```
+
+```{r}
+ggplot(happiness2021_data, aes(x=Freedom.to.make.life.choices)) + 
+  geom_histogram(binwidth=.025, fill="#50C878") + ggtitle("2021 Freedom to Make Life Choices") + xlab("Freedom to Make Life Choices") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Freedom.to.make.life.choices, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Freedom.to.make.life.choices, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) +theme_linedraw() 
+```
+
+```{r}
+ggplot(happiness2021_data, aes(x=Generosity)) + 
+  geom_histogram(binwidth=.025, fill="#50C878") + ggtitle("2021 Generosity") + xlab("Generosity") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Generosity, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Generosity, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) +theme_linedraw() 
+```
+
+```{r}
+ggplot(happiness2021_data, aes(x=Perceptions.of.corruption)) + 
+  geom_histogram(binwidth=.025, fill="#50C878") + ggtitle("2021 Perceptions of Corruption") + xlab("Perceptions of Corruption") + ylab("Country Count") + geom_vline(data=finland, aes(xintercept=Perceptions.of.corruption, color="#E13F2A"),linetype="solid") + geom_vline(data=afghanistan, aes(xintercept=Perceptions.of.corruption, color="#3FE0D0"),linetype="solid") +scale_color_discrete(name = "Legend", labels = c("Afghanistan", "Finland")) +theme_linedraw() 
+```
+
+```{r}
+#grouby_region = df.groupby('Regional indicator')['Ladder score'].mean().reset_index().sort_values('Ladder score')
+grouby_region <- happiness2021_data %>% group_by(Regional.indicator) %>%
+	summarise(mean_score = mean(Ladder.score))
+grouby_region <- grouby_region[order(-grouby_region$mean_score),]
+
+grouby_region
+
+ggplot(data=grouby_region, aes(x=reorder(Regional.indicator, mean_score), y=mean_score)) + geom_bar(stat="identity", fill="#FDEE87") + coord_flip() + theme_linedraw() + ggtitle("Regions Ranked by Happiness") + xlab("Regions") + ylab("Avg. Ladder Score")
+```
+```{r}
+corr_data <- happiness2021_data %>% select(Ladder.score, Logged.GDP.per.capita, Social.support, Healthy.life.expectancy, Freedom.to.make.life.choices, Generosity, Perceptions.of.corruption)
+corr_data
+
+corr <- round(cor(corr_data), 1)
+corr
+ggcorrplot(corr, ggtheme = ggplot2::theme_minimal(),
+   colors = c("#FDEE87", "white", "#50C878"), lab=TRUE) 
+ggcorrplot(corr, ggtheme = ggplot2::theme_minimal(),
+   colors = c("#FDEE87", "white", "#50C878")) 
+```
+```{r}
+happiness2021_data$Country.name
+```
+
+```{r}
+plotdata <- happiness2021_data %>%
+  rename(region = Country.name,
+         value = Ladder.score) %>%
+  mutate(region = tolower(region)) %>%
+  mutate(region = recode(region,
+                          "taiwan province of china" = "taiwan",
+                          "hong kong s.a.r. of china" = "hong kong",
+                          "congo (brazzaville)" = "republic of congo",
+                          "palestinian territories" = "palestine",
+                          "united states" = "united states of america",
+                          "tanzania" = "united republic of tanzania",
+                          "north cyprus" = "northern cyprus",
+                          "serbia" = "republic of serbia"))
+country_choropleth(plotdata) + 
+  scale_fill_brewer(palette="YlGn") +
+  labs(title = "2021 Ladder Score by Country",
+       caption = "source: world happiness report 2021",
+       fill = "Ladder Score")
+```
+
+```{r}
+plotinternetdata <- internet_data %>%
+  rename(region = country,
+         value = internetuserate) %>%
+  mutate(region = tolower(region)) %>%
+  mutate(region = recode(region,
+                          "united states" = "united states of america",
+                          "congo, rep." = "republic of congo",
+                          "congo, dem. rep." = "democratic republic of the congo",
+                          "korea, dem. rep." = "south korea",
+                          "korea, rep." = "north korea",
+                          "dominican rep." = "dominican repulic",
+                          "czech rep." = "czech republic",
+                          "cote d'ivoire" = "ivory coast",
+                          "bahamas" = "the bahamas",
+                          "dominican repulic" = "dominican republic",
+                          "tanzania" = "united republic of tanzania",
+                          "guinea-bissau" = "guinea bissau"))
+country_choropleth(plotinternetdata) + 
+  scale_fill_brewer(palette="YlGnBu") +
+  labs(title = "Internet User Rate by Country",
+       caption = "source: Gapminder",
+       fill = "Internet User Rate")
+```
+
+```{r}
+# remove NA entries
+
+corr_internetdata <- na.omit(internet_data) %>% select(incomeperperson, internetuserate, urbanrate)
+corr_internetdata
+
+corr_internet <- round(cor(corr_internetdata), 1)
+corr_internet
+ggcorrplot(corr_internet, ggtheme = ggplot2::theme_minimal,
+   colors = c("#FDEE87", "white", "#3FE0D0"), lab=TRUE)
+ggcorrplot(corr_internet, ggtheme = ggplot2::theme_minimal,
+   colors = c("#FDEE87", "white", "#3FE0D0"))
+```
+
+```{r}
+# join datasets to see correlation with ladder score
+internet_data = internet_data %>% 
+  rename(Country.name = country)
+joined_data <- merge(happiness2021_data, internet_data, by="Country.name")
+joined_data
+
+corr_internetdata <- na.omit(joined_data) %>% select(Ladder.score, incomeperperson, internetuserate, urbanrate)
+corr_internetdata
+
+corr_internet <- round(cor(corr_internetdata), 1)
+corr_internet
+ggcorrplot(corr_internet, ggtheme = ggplot2::theme_minimal,
+   colors = c("#FDEE87", "white", "#3FE0D0"), lab=TRUE)
+ggcorrplot(corr_internet, ggtheme = ggplot2::theme_minimal,
+   colors = c("#FDEE87", "white", "#3FE0D0"))
+```
+
+```{r}
+# top 10 internet user countries
+top_10_internet <- head(internet_data[order(-internet_data$internetuserate),], n=10)
+top_10_internet
+
+ggplot(data=top_10_internet, aes(x=reorder(Country.name, internetuserate), y=internetuserate)) + geom_bar(stat="identity", fill="#3FE0D0") + theme_linedraw() + ggtitle("Top 10 Internet Usage Countries") + xlab("Countries") + ylab("Internet Use Rate") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+```
+
+```{r}
+# top 10 happiest countries ranked by internet user rate
+top_10_happiest_internet <- head(joined_data[order(-joined_data$Ladder.score),], n=10)
+top_10_happiest_internet <- top_10_happiest_internet[order(-top_10_happiest_internet$internetuserate),] 
+
+ggplot(data=top_10_happiest_internet, aes(x=reorder(Country.name, internetuserate), y=internetuserate)) + geom_bar(stat="identity", fill="#3FE0D0") + theme_classic() + ggtitle("2021 Top 10 Happiest Countries by Internet User Rate") + xlab("Countries") + ylab("Internet Use Rate") + theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) 
+```
+```{r}
+# ladder score vs internet user rate
+ggplot(joined_data, aes(x=Ladder.score, y=internetuserate)) + 
+  geom_point(color="#3FE0D0")+
+  geom_smooth(method=lm, se=FALSE, color="#FDEE87") + theme_linedraw() + ggtitle("Ladder Score vs Internet Use Rate") + xlab("Ladder Score") + ylab("Internet Use Rate")
+```
+```{r}
+# internet user rate vs urban rate
+ggplot(joined_data, aes(x=urbanrate, y=internetuserate)) + 
+  geom_point(color="#3FE0D0")+
+  geom_smooth(method=lm, se=FALSE, color="#FDEE87") + theme_linedraw() + ggtitle("Urban Rate vs Internet Use Rate") + xlab("Urban Rate") + ylab("Internet User Rate")
+```
+
+```{r}
+# income per person vs internet user rate
+ggplot(joined_data, aes(x=incomeperperson, y=internetuserate)) + 
+  geom_point(color="#3FE0D0")+
+  geom_smooth(method=lm, se=FALSE, color="#FDEE87") + theme_linedraw() + ggtitle("Income Per Person vs Internet Use Rate") + xlab("Income per Person") + ylab("Internet Use Rate")
+```
+
+By: Joey Zhao
